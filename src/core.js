@@ -1,4 +1,4 @@
-/* core.js — OKLab/OKLCH conversions with gamut mapping, WCAG 2 and APCA contrast, color-vision simulation, scales, harmonies, k-means image palettes and exporters (pure, unit-tested). */
+/* OKLab/OKLCH conversions with gamut mapping, WCAG 2 and APCA contrast, color-vision simulation, scales, harmonies, k-means image palettes and exporters (pure, unit-tested). */
 
 var ROLES = ['primary', 'secondary', 'accent', 'background', 'surface', 'text', 'muted'];
 var BRAND = ['primary', 'secondary', 'accent'];

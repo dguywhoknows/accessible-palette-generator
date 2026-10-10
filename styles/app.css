@@ -1,4 +1,4 @@
-:root { --accent: #e11d48; }
+:root { --accent: #b3365b; }
 .swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
 .sw { border-radius: 14px; height: 170px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow); position: relative; }
 .sw .top { display: flex; justify-content: space-between; align-items: flex-start; }
