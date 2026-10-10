@@ -1,0 +1,16 @@
+{
+  "name": "accessible-palette-generator",
+  "version": "2.0.0",
+  "private": true,
+  "description": "AI color palettes from a mood or brand, checked with real color science: OKLCH tonal scales, a WCAG contrast matrix, auto-fix, color-blindness simulation and a live UI preview.",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "test": "node tests/run-node.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dguywhoknows/accessible-palette-generator.git"
+  },
+  "homepage": "https://dguywhoknows.github.io/accessible-palette-generator/",
+  "license": "MIT"
+}
