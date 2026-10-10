@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en" data-gate="app">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palette Lab</title>
+<meta name="description" content="AI color palettes from a mood or brand, checked with real color science: OKLCH tonal scales, WCAG contrast matrix, auto-fix, color-blind simulation and live UI preview.">
+<meta name="app-repo" content="https://github.com/dguywhoknows/accessible-palette-generator">
+<meta name="app-version" content="2.0.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e11d48'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='Arial%2CHelvetica%2Csans-serif' font-weight='700' font-size='13' fill='white'%3EPL%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/app.css">
+<script src="src/lib/config.js"></script>
+<script src="src/lib/auth.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><a class="logo-link" href="index.html" aria-label="Home page"><span class="logo" aria-hidden="true">PL</span></a><div><h1>Palette Lab</h1><p>Beautiful palettes that also pass accessibility checks.</p></div></div>
+  <nav class="topnav" data-nav aria-label="Pages"></nav>
+  <div class="top-actions"><a class="btn ghost sm" href="https://github.com/dguywhoknows/accessible-palette-generator" target="_blank" rel="noopener">GitHub</a><span data-ai-badge></span></div>
+</header>
+<div class="page active" data-page="generate" data-title="Generate">
+<main class="stack">
+  <div class="card row">
+    <input class="input grow" id="prompt" value="calm fintech app for first-time investors, trustworthy but warm">
+    <button class="btn primary" id="gen">Generate</button>
+    <button class="btn" id="regen" title="Keep locked colors, regenerate the rest">Regenerate unlocked</button>
+    <button class="btn ghost" id="savePal">Save to library</button>
+  </div>
+  <div class="swatches" id="swatches"></div>
+  <p class="small muted" id="rationale"></p>
+  <div class="grid cols-2">
+    <div class="card">
+      <div class="row between"><h2 style="margin:0">Live preview</h2><div class="row"><button class="btn sm" data-scheme="light">Light</button><button class="btn sm" data-scheme="dark">Dark</button></div></div>
+      <div id="preview" class="preview"></div>
+    </div>
+    <div class="card">
+      <div class="row between"><h2 style="margin:0">Contrast audit</h2><button class="btn sm" id="fix">Auto-fix contrast</button></div>
+      <div class="table-wrap" id="matrix"></div>
+      <p class="small muted">WCAG 2 ratio and APCA lightness contrast (Lc) for every pairing a UI uses. AA needs 4.5:1 for body text and 3:1 for large text and UI.</p>
+    </div>
+  </div>
+  <div class="card"><h2>Tonal scales (OKLCH)</h2><div id="scales"></div></div>
+  <div class="card"><div class="row between"><h2 style="margin:0">Color-vision simulation</h2><span class="small muted">Machado et al. 2009, severity 1.0</span></div><div id="cvd"></div></div>
+  <div class="card">
+    <div class="tabs" id="exTabs"><button class="on" data-x="css">CSS vars</button><button data-x="scss">SCSS</button><button data-x="tailwind">Tailwind</button><button data-x="json">Design tokens</button><button data-x="svg">SVG swatches</button></div>
+    <pre id="exOut"></pre>
+    <div class="row"><button class="btn sm" id="copy">Copy</button><button class="btn sm ghost" id="dl">Download</button></div>
+  </div>
+</main>
+</div>
+<div class="page" data-page="contrast" data-title="Contrast">
+<main class="stack" style="max-width:980px">
+  <div class="card row">
+    <label class="row" style="gap:6px">Text <input type="color" id="cFg" value="#777777" aria-label="Text color"><input class="input mono" id="cFgHex" value="#777777" style="width:100px" aria-label="Text hex"></label>
+    <label class="row" style="gap:6px">Background <input type="color" id="cBg" value="#ffffff" aria-label="Background color"><input class="input mono" id="cBgHex" value="#ffffff" style="width:100px" aria-label="Background hex"></label>
+    <button class="btn ghost" id="cSwap">Swap</button>
+  </div>
+  <div class="grid cols-2">
+    <div class="card cpreview" id="cPreview"></div>
+    <div class="card stack" id="cResults"></div>
+  </div>
+</main>
+</div>
+
+<div class="page" data-page="image" data-title="From image">
+<main class="grid side">
+  <aside class="card stack">
+    <h2 style="margin:0">Extract from an image</h2>
+    <label class="btn primary">Choose image<input type="file" id="imgFile" accept="image/*" hidden></label>
+    <label>Colors <input type="range" id="imgK" min="3" max="10" value="6"> <span id="imgKVal" class="muted">6</span></label>
+    <p class="small muted" style="margin:0">Pixels are clustered with k-means in OKLab, so similar-looking colors merge. The image never leaves your browser.</p>
+    <div id="imgSwatches" class="stack"></div>
+    <button class="btn" id="imgUse" disabled>Use as palette</button>
+  </aside>
+  <section class="card"><canvas id="imgCanvas" class="img-canvas" aria-label="Image preview"></canvas><div id="imgEmpty" class="empty">Choose a photo, illustration or screenshot.</div></section>
+</main>
+</div>
+
+<div class="page" data-page="harmony" data-title="Harmony">
+<main class="stack">
+  <div class="card row"><label class="row" style="gap:6px">Base color <input type="color" id="hBase" value="#3366cc" aria-label="Base color"></label><span class="small muted">Hue rotations in OKLCH keep lightness and chroma, so every result has the same visual weight.</span></div>
+  <div id="harmonies" class="stack"></div>
+</main>
+</div>
+
+<div class="page" data-page="library" data-title="Library">
+<main class="stack">
+  <div class="page-head"><div><h2>Saved palettes</h2><p id="libSummary"></p></div></div>
+  <div class="grid cols-3" id="libList"></div>
+</main>
+</div>
+
+<div class="page" data-page="settings" data-title="Settings"></div>
+<script src="src/lib/dom.js"></script>
+<script src="src/lib/ai.js"></script>
+<script src="src/lib/router.js"></script>
+<script src="src/lib/copilot.js"></script>
+<script src="src/core.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>

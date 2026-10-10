@@ -178,3 +178,28 @@ Router.on('library', renderLibrary);
 render();
 renderContrast();
 renderHarmony();
+
+/* ================= AI command box ================= */
+const pickRole = (r) => { const c = P.colors.find((x) => x.role === String(r).toLowerCase()); if (!c) throw new Error(`No role "${r}". Roles: ${ROLES.join(', ')}`); return c; };
+const fixReport = () => { const n = autoFix(P); render(); const fails = auditPalette(P).filter((r) => !r.ok).length; return (n.length ? `Adjusted ${n.join(', ')} to pass AA. ` : '') + (fails ? `${fails} pairs still fail.` : 'Every pair passes the audit.'); };
+Copilot.register({
+  context: () => `Palette "${P.name}" for brief "${$('#prompt').value}": ${P.colors.map((c) => `${c.role}=${c.hex}${c.locked ? ' (locked)' : ''}`).join(', ')}. Audit failures: ${auditPalette(P).filter((r) => !r.ok).map((r) => `${r.fg} on ${r.bg} ${r.ratio.toFixed(2)}`).join('; ') || 'none'}. Library has ${library.length} palettes.`,
+  actions: [
+    { name: 'generate_palette', description: 'Generate a new palette from a brief, then fix contrast. Locked colors are kept when keep_locked is true.', params: { brief: 'mood, brand or product description', keep_locked: 'true | false' },
+      run: async ({ brief, keep_locked }) => { if (brief) $('#prompt').value = brief; Router.go('generate'); await generate(keep_locked === true || keep_locked === 'true'); return `Generated "${P.name}". ${fixReport()}`; } },
+    { name: 'set_color', description: 'Set one role to an exact hex color and lock it', params: { role: ROLES.join(' | '), hex: '#rrggbb' },
+      run: ({ role, hex }) => { const c = pickRole(role), n = normHex(hex); if (!n) throw new Error('Bad hex ' + hex); c.hex = n; c.locked = true; return `${c.role} is now ${n}. ${fixReport()}`; } },
+    { name: 'adjust_color', description: 'Nudge a role in OKLCH: hue_shift in degrees (towards red/orange is warmer: negative for blues/greens, positive for purples), lightness and chroma deltas. Contrast is re-checked and fixed afterwards.', params: { role: ROLES.join(' | '), hue_shift: 'degrees, e.g. -20', lightness: 'delta 0-1 scale, e.g. -0.05', chroma: 'delta, e.g. 0.02' },
+      run: ({ role, hue_shift, lightness, chroma }) => { const c = pickRole(role), [L, C, H] = toOklch(c.hex); c.hex = fromOklch(Math.max(0, Math.min(1, L + (+lightness || 0))), Math.max(0, C + (+chroma || 0)), (H + (+hue_shift || 0) + 360) % 360); c.locked = true; return `${c.role} is now ${c.hex}. ${fixReport()}`; } },
+    { name: 'lock', description: 'Lock or unlock roles so regeneration keeps them', params: { roles: 'comma-separated roles', locked: 'true | false' }, run: ({ roles, locked }) => { String(roles).split(',').forEach((r) => (pickRole(r.trim()).locked = locked !== false && locked !== 'false')); render(); return 'Updated locks'; } },
+    { name: 'fix_contrast', description: 'Adjust lightness so every text pair passes WCAG AA', params: {}, run: fixReport },
+    { name: 'apply_harmony', description: 'Replace primary, secondary and accent with a color harmony from a base color', params: { base: '#rrggbb', kind: Object.keys(HARMONIES).join(' | ') },
+      run: ({ base, kind }) => { const cols = harmony(normHex(base) || base, kind); ['primary', 'secondary', 'accent'].forEach((r, i) => { if (cols[i]) { const c = pickRole(r); c.hex = cols[i]; c.locked = true; } }); Router.go('generate'); return `Applied ${kind}. ${fixReport()}`; } },
+    { name: 'show_export', description: 'Show the export code for the palette', params: { format: Object.keys(EXPORTS).join(' | ') },
+      run: ({ format }) => { const k = String(format).toLowerCase(); if (!EXPORTS[k]) throw new Error('Formats: ' + Object.keys(EXPORTS).join(', ')); exKind = k; $$('#exTabs button').forEach((x) => x.classList.toggle('on', x.dataset.x === k)); Router.go('generate'); renderExport(); $('#exOut').scrollIntoView({ behavior: 'smooth', block: 'center' }); return `Showing ${k} export, ready to copy`; } },
+    { name: 'preview_scheme', description: 'Preview the palette in light or dark mode', params: { scheme: 'light | dark' }, run: ({ scheme: s }) => { scheme = s === 'dark' ? 'dark' : 'light'; renderPreview(); renderAudit(); return `Previewing ${scheme} mode`; } },
+    { name: 'check_contrast', description: 'Check two colors on the Contrast page', params: { text: '#rrggbb', background: '#rrggbb' }, run: ({ text, background }) => { setPair(normHex(text), normHex(background)); Router.go('contrast'); const r = contrast(normHex(text), normHex(background)); return `${r.toFixed(2)}:1, ${wcagLevel(r)}`; } },
+    { name: 'save_palette', description: 'Save the current palette to the library', params: {}, run: () => { $('#savePal').click(); return 'Saved to the library'; } },
+    { name: 'audit', query: true, description: 'Look up the full contrast audit and color-blindness conflicts', params: {}, run: () => JSON.stringify({ audit: auditPalette(P).map((r) => ({ pair: `${r.fg} on ${r.bg}`, ratio: +r.ratio.toFixed(2), apca: Math.round(r.apca), ok: r.ok })), cvd: ['Protanopia', 'Deuteranopia', 'Tritanopia'].map((k) => ({ k, confusable: confusablePairs(P.colors.filter((c) => BRAND.includes(c.role)), k) })) }) },
+  ],
+});
